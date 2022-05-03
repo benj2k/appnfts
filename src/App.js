@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { utils } from 'ethers';
 import EyeBall from './artifacts/contracts/EyeBall.sol/EyeBall.json';
 import './App.css';
 import img1 from './img/1.png';
@@ -25,12 +26,14 @@ function App() {
   }, []);
   async function fetchData() {
     if (typeof window.ethereum !== 'undefined') {
+      let accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(EYBaddress, EyeBall.abi, provider);
       try {
         const cost = await contract.cost();
         const totalSupply = await contract.totalSupply();
-        const object = {"cost" : String(cost), "totalSupply": String(totalSupply)};
+        const owner = await contract.owner();
+        const object = {"cost" : String(cost), "totalSupply": String(totalSupply), "isOwner": (owner === utils.getAddress(accounts[0]))};
         setData(object);
       } catch(err) {
         setError(err.message);
@@ -59,9 +62,26 @@ function App() {
     }
   }
 
+  async function withdraw() {
+    if (typeof window.ethereum !== 'undefined') {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(EYBaddress, EyeBall.abi, signer)
+
+      try {
+        const transaction = await contract.withdraw();
+        await transaction.wait();
+        fetchData();
+      } catch(err) {
+        setError(err.message);
+      }
+    }
+  }
+
   return (
     <div className="App">
-      <div className="container">
+      <div className="container">{data.isOwner}
+      { data.isOwner === true && <button className="withdraw" onClick={withdraw}>Withdraw</button>}
         <div className="banniere">
           <img src={img1} alt="img" />
           <img src={img2} alt="img" />
