@@ -37,6 +37,28 @@ function App() {
       }
     }
   }
+
+  async function mint() {
+    if (typeof window.ethereum !== 'undefined') {
+      let accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(EYBaddress, EyeBall.abi, signer)
+
+      try {
+        let overrides = {
+          from: accounts[0],
+          value: data.cost
+        }
+        const transaction = await contract.mint(accounts[0], 1, overrides);
+        await transaction.wait();
+        fetchData();
+      } catch(err) {
+        setError(err.message);
+      }
+    }
+  }
+
   return (
     <div className="App">
       <div className="container">
@@ -56,6 +78,7 @@ function App() {
         <h1> Mint a EyeBall NFT !</h1>
         <p className="count">{data.totalSupply} / 10</p>
         <p className="cost">Each EyeBall NFT costs {data.cost / 10 ** 18} eth (excluding gas fee)</p>
+        <button onClick={mint}>Buy aEyeBall NFT</button>
       </div>
     </div>
   );
